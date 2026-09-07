@@ -1,0 +1,25 @@
+# Data
+data/raw/*
+data/processed/*
+
+# Environment
+.env
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+venv/
+
+# Airflow
+logs/
+airflow.cfg
+airflow.db
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
