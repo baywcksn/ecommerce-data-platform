@@ -10,21 +10,32 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+
 producer = Producer({
     "bootstrap.servers": "localhost:9092",
 })
 
+
 csv_file = "data/raw/olist_orders_dataset.csv"
+
 
 with open(csv_file, newline="", encoding="utf-8") as file:
     reader = csv.DictReader(file)
     orders = list(reader)
 
+
 orders.sort(key=lambda row: row["order_purchase_timestamp"])
 
+
+simulation_mode = os.getenv("SIMULATION_MODE", "accelerated")
 simulation_speed = float(os.getenv("SIMULATION_SPEED", "1"))
+simulation_max_wait = float(
+    os.getenv("SIMULATION_MAX_WAIT_SECONDS", "5")
+)
+
 
 previous_timestamp = None
+
 
 for i, row in enumerate(orders):
     current_timestamp = datetime.strptime(
@@ -37,11 +48,24 @@ for i, row in enumerate(orders):
             current_timestamp - previous_timestamp
         ).total_seconds()
 
-        wait_time = min(time_difference / simulation_speed, 5)
+        if simulation_mode == "accelerated":
+            wait_time = min(
+                time_difference / simulation_speed,
+                simulation_max_wait,
+            )
+
+        elif simulation_mode == "realtime":
+            wait_time = time_difference
+
+        else:
+            raise ValueError(
+                f"Unsupported SIMULATION_MODE: {simulation_mode}"
+            )
+
         time.sleep(wait_time)
 
     previous_timestamp = current_timestamp
-    
+
     event = {
         "event_id": f"ORDER_CREATED_{row['order_id']}",
         "event_type": "ORDER_CREATED",
@@ -60,5 +84,6 @@ for i, row in enumerate(orders):
 
     if i == 99:
         break
+
 
 producer.flush()
